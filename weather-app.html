@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Alert App</title>
+  <style>
+    /* style.css content embedded here */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      color: #fff;
+    }
+
+    .app {
+      text-align: center;
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      width: 90%;
+      max-width: 400px;
+    }
+
+    #alerts {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Weather Alert App</h1>
+    <div id="location"></div>
+    <div id="weather"></div>
+    <div id="alerts"></div>
+  </div>
+
+  <script>
+    const API_KEY = 'REPLACE_WITH_YOUR_OPENWEATHERMAP_API_KEY'; // Get it from https://openweathermap.org/api // Replace with your OpenWeatherMap API key
+
+    function getLocationWeather(lat, lon) {
+      const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`;
+      fetch(weatherUrl)
+        .then(response => response.json())
+        .then(data => {
+          if (data.cod === 200) {
+            const location = `${data.name}, ${data.sys.country}`;
+            const temperature = `${data.main.temp}°C`;
+            const humidity = `${data.main.humidity}% Humidity`;
+            const condition = `${data.weather[0].main}`;
+            document.getElementById('location').innerText = location;
+            document.getElementById('weather').innerText = `${temperature} | ${humidity} | ${condition}`;
+
+            if (condition.includes('Thunderstorm') || condition.includes('Tornado')) {
+              if (navigator.vibrate) navigator.vibrate(2000);
+              document.getElementById('alerts').innerText = '⚠️ Severe weather warning!';
+            } else {
+              document.getElementById('alerts').innerText = '';
+            }
+          } else {
+            console.error('Error fetching weather data:', data.message);
+            document.getElementById('location').innerText = 'Error fetching weather';
+            document.getElementById('weather').innerText = '';
+            document.getElementById('alerts').innerText = '';
+          }
+        })
+        .catch(err => {
+          console.error('Network error or unexpected issue:', err);
+          document.getElementById('location').innerText = 'Error fetching weather';
+          document.getElementById('weather').innerText = '';
+          document.getElementById('alerts').innerText = '';
+        });
+    }
+
+    function getWeather() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            getLocationWeather(lat, lon);
+          },
+          error => {
+            console.error('Geolocation error:', error);
+            let errorMessage = 'Unable to get location';
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = 'Geolocation permission denied. Please enable location services.';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = 'Location information unavailable.';
+                break;
+              case error.TIMEOUT:
+                errorMessage = 'The request to get user location timed out.';
+                break;
+              default:
+                errorMessage = 'An unknown error occurred while getting location.';
+                break;
+            }
+            document.getElementById('location').innerText = errorMessage;
+            document.getElementById('weather').innerText = '';
+            document.getElementById('alerts').innerText = '';
+          }
+        );
+      } else {
+        document.getElementById('location').innerText = 'Geolocation not supported by this browser.';
+        document.getElementById('weather').innerText = '';
+        document.getElementById('alerts').innerText = '';
+      }
+    }
+
+    setInterval(getWeather, 60000);
+    getWeather();
+  </script>
+</body>
+</html>
